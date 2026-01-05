@@ -76,12 +76,15 @@
             <li>Supported account types: เลือก <strong>"Accounts in any organizational directory and personal Microsoft accounts"</strong></li>
             <li>Redirect URI:
               <ul class="ml-4 mt-1">
-                <li>- Type: <strong>Single-page application (SPA)</strong></li>
+                <li>- Type: <strong>Single-page application (SPA)</strong> ⚠️ สำคัญมาก!</li>
                 <li>- URL: <code class="bg-gray-200 px-2 py-1 rounded font-mono text-xs" id="currentUrl"></code> <button onclick="copyUrl()" class="text-blue-600 text-xs ml-1 hover:underline">📋 Copy</button></li>
               </ul>
             </li>
             <li>คลิก "Register"</li>
           </ol>
+          <div class="mt-3 p-2 bg-blue-50 rounded border border-blue-200 text-xs">
+            <strong>💡 หมายเหตุ:</strong> แอพนี้ใช้ Redirect flow ไม่ใช่ Popup เพื่อหลีกเลี่ยงปัญหา nested popups
+          </div>
         </div>
         
         <div class="bg-white p-4 rounded-lg">
@@ -441,10 +444,10 @@
     document.getElementById('loginBtn').addEventListener('click', async () => {
       try {
         hideError();
-        await msalInstance.loginPopup({
+        // Use redirect flow instead of popup to avoid nested popup issues
+        await msalInstance.loginRedirect({
           scopes: ['User.Read', 'Group.ReadWrite.All', 'Tasks.ReadWrite']
         });
-        location.reload();
       } catch (error) {
         console.error('Login error:', error);
         handleAuthError(error);
@@ -454,9 +457,8 @@
     // Logout
     document.getElementById('logoutBtn').addEventListener('click', () => {
       if (msalInstance) {
-        msalInstance.logoutPopup();
+        msalInstance.logoutRedirect();
       }
-      setTimeout(() => location.reload(), 500);
     });
 
     // Get Access Token
@@ -470,16 +472,10 @@
         hideError();
       } catch (error) {
         console.error('Token error:', error);
-        try {
-          const response = await msalInstance.acquireTokenPopup({
-            scopes: ['User.Read', 'Group.ReadWrite.All', 'Tasks.ReadWrite']
-          });
-          accessToken = response.accessToken;
-          hideError();
-        } catch (popupError) {
-          handleAuthError(popupError);
-          throw popupError;
-        }
+        // If silent token acquisition fails, use redirect
+        await msalInstance.acquireTokenRedirect({
+          scopes: ['User.Read', 'Group.ReadWrite.All', 'Tasks.ReadWrite']
+        });
       }
     }
 
@@ -488,9 +484,7 @@
       let message = error.message || 'เกิดข้อผิดพลาด';
       let solution = '';
 
-      if (error.errorCode === 'popup_window_error' || message.includes('popup')) {
-        solution = 'เบราว์เซอร์บล็อก pop-up กรุณาอนุญาต pop-up สำหรับเว็บไซต์นี้';
-      } else if (error.errorCode === 'invalid_client' || message.includes('AADSTS700016')) {
+      if (error.errorCode === 'invalid_client' || message.includes('AADSTS700016')) {
         solution = 'Client ID ไม่ถูกต้อง กรุณาตรวจสอบ Client ID ในการตั้งค่า <button onclick="showSetup()" class="underline text-blue-600">คลิกที่นี่</button>';
       } else if (message.includes('redirect_uri') || message.includes('AADSTS50011')) {
         solution = `Redirect URI ไม่ตรง กรุณาตรวจสอบว่าใน Azure AD ตั้งเป็น: <code class="bg-gray-200 px-2 py-1">${window.location.origin}${window.location.pathname}</code>`;
@@ -498,7 +492,7 @@
         solution = 'ยังไม่ได้ Grant permissions ใน Azure AD กรุณา Grant admin consent';
       } else if (error.errorCode === 'user_cancelled') {
         solution = 'ยกเลิกการ login';
-        return;
+        return; // Don't show error for cancelled login
       } else {
         solution = 'ลองออกจากระบบแล้วเข้าใหม่ หรือเคลียร์ cache ของเบราว์เซอร์';
       }
