@@ -397,9 +397,9 @@
       const msalConfig = {
         auth: {
           clientId: clientId,
-          // Use /organizations for work/school accounts, or /common for multi-tenant
-          // If you get AADSTS50194 error, change /common to /organizations
-          authority: 'https://login.microsoftonline.com/organizations',
+          // /common = Multi-tenant (รองรับทั้ง personal และ work/school accounts)
+          // ต้องตั้ง App เป็น Multi-tenant ใน Azure AD ก่อน!
+          authority: 'https://login.microsoftonline.com/common',
           redirectUri: window.location.origin + window.location.pathname
         },
         cache: {
