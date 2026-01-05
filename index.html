@@ -397,7 +397,9 @@
       const msalConfig = {
         auth: {
           clientId: clientId,
-          authority: 'https://login.microsoftonline.com/common',
+          // Use /organizations for work/school accounts, or /common for multi-tenant
+          // If you get AADSTS50194 error, change /common to /organizations
+          authority: 'https://login.microsoftonline.com/organizations',
           redirectUri: window.location.origin + window.location.pathname
         },
         cache: {
