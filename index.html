@@ -409,7 +409,11 @@
       };
 
       const loginRequest = {
-        scopes: ['User.Read', 'Group.ReadWrite.All', 'Tasks.ReadWrite']
+        scopes: [
+          'User.Read',           // อ่านข้อมูล user (ไม่ต้องการ admin)
+          'Tasks.ReadWrite'      // อ่านเขียน Tasks (ไม่ต้องการ admin)
+          // หมายเหตุ: ไม่รวม Group.ReadWrite.All เพราะต้องการ admin consent
+        ]
       };
 
       try {
